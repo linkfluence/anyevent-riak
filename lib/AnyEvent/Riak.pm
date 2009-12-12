@@ -130,23 +130,38 @@ __END__
 
 =head1 NAME
 
-AnyEvent::Riak -
+AnyEvent::Riak - Non-blocking Riak client
 
 =head1 SYNOPSIS
 
   use AnyEvent::Riak;
 
+  my $riak = AnyEvent::Riak->new(
+    host => 'http://127.0.0.1:8098',
+    path => 'jiak',
+  );
+
+  my $buckets    = $riak->list_bucket('namespace')->recv;
+  my $new_bucket = $riak->set_bucket('foo', {allowed_fields => '*'})->recv;
+  my $store      = $riak->store({bucket => 'foo', key => 'bar', object => {baz => 1},link => []})->recv;
+  my $fetch      = $riak->fetch('foo', 'bar')->recv;
+  my $delete     = $riak->delete('foo', 'bar')->recv;
+
 =head1 DESCRIPTION
 
-AnyEvent::Riak is
+AnyEvent::Riak is a non-blocking riak client using anyevent.
 
 =head1 AUTHOR
 
-franck cuny E<lt>franck.cuny {at} rtgi.frE<gt>
+franck cuny E<lt>franck@lumberjaph.netE<gt>
 
 =head1 SEE ALSO
 
 =head1 LICENSE
+
+Copyright 2009 by linkfluence.
+
+L<http://linkfluence.net>
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
