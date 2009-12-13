@@ -38,31 +38,41 @@ sub set_bucket {
         $schema->{write_mask} = $schema->{read_mask};
     }
 
-    $self->_request('PUT', $self->_build_uri([$bucket]), '204',
-        encode_json{schema => $schema});
+    $self->_request(
+        'PUT', $self->_build_uri( [$bucket] ),
+        '204', encode_json { schema => $schema }
+    );
 }
 
 sub list_bucket {
     my ( $self, $bucket ) = @_;
-    return $self->_request('GET', $self->_build_uri([$bucket]), '200');
+    return $self->_request( 'GET', $self->_build_uri( [$bucket] ), '200' );
 }
 
 sub fetch {
-    my ($self, $bucket, $key) = @_;
-    return $self->_request('GET', $self->_build_uri([$bucket, $key]), '200');
+    my ( $self, $bucket, $key, $r ) = @_;
+    $r = $self->{r} || 2 if !$r;
+    return $self->_request( 'GET',
+        $self->_build_uri( [ $bucket, $key ], { r =>  $r} ), '200' );
 }
 
 sub store {
-    my ( $self, $object ) = @_;
+    my ( $self, $object, $w, $dw, ) = @_;
+
+    $w  = $self->{w}  || 2 if !$w;
+    $dw = $self->{dw} || 2 if !$dw;
 
     my $bucket = $object->{bucket};
     my $key    = $object->{key};
+    $object->{links} = [] if !exists $object->{links};
+
     return $self->_request(
         'PUT',
         $self->_build_uri(
             [ $bucket, $key ],
             {
-                dw         => 2,
+                w          => $w,
+                dw         => $dw,
                 returnbody => 'true'
             }
         ),
@@ -70,18 +80,12 @@ sub store {
         encode_json $object);
 }
 
-sub fetch {
-    my ( $self, $bucket, $key, ) = @_;
-
-    return $self->_request( 'GET',
-        $self->_build_uri( [ $bucket, $key ], { r => 2 } ), '200' );
-}
-
 sub delete {
-    my ( $self, $bucket, $key ) = @_;
+    my ( $self, $bucket, $key, $rw ) = @_;
 
+    $rw = $self->{rw} || 2 if !$rw;
     return $self->_request( 'DELETE',
-        $self->_build_uri( [ $bucket, $key ], { dw => 2 } ), 204 );
+        $self->_build_uri( [ $bucket, $key ], { dw => $rw } ), 204 );
 }
 
 sub _build_uri {
@@ -103,8 +107,8 @@ sub _request {
                 : return $cv->send(1);
         }
         else {
-            return $cv->send(
-                $headers->{Status} . ' : ' . $headers->{Reason} );
+            return $cv->croak(
+                encode_json( [ $headers->{Status}, $headers->{Reason} ] ) );
         }
     };
     if ($body) {

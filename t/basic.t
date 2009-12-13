@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 use Test::More;
+use JSON::XS;
 use Test::Exception;
 use AnyEvent::Riak;
 
@@ -18,14 +19,17 @@ ok my $new_bucket
 
 my $value = {
     bucket => 'foo',
-    key    => 'baz',
-    object => { foo => "bar" },
+    key    => 'bar',
+    object => { foo => "bar", baz => 1 },
     links  => []
 };
 
 ok my $res = $jiak->store($value)->recv, '... set a new key';
 
-ok $res = $jiak->fetch( 'foo', 'baz' )->recv, '... fetch our new key';
-ok $res = $jiak->delete( 'foo', 'baz' )->recv, '... delete our key';
+ok $res = $jiak->fetch( 'foo', 'bar' )->recv, '... fetch our new key';
+ok $res = $jiak->delete( 'foo', 'bar' )->recv, '... delete our key';
+
+dies_ok { $jiak->fetch( 'foo', 'foo' )->recv } '... dies when error';
+like $@, qr/404/, '... 404 response';
 
 done_testing();
